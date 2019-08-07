@@ -1,0 +1,5 @@
+package brainfeck
+
+sourcedir  = lib
+modules    = Brainfeck.Lex
+-- executable = brainfeck
