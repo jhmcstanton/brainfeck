@@ -2,18 +2,9 @@ module Brainfeck.Lex
 
 import Data.Vect
 
-%default total
+import Brainfeck.Type
 
-public export
-data Token     : Type  where
-  TLeft        : Token -- <
-  TRight       : Token -- >
-  TInc         : Token -- +
-  TDec         : Token -- -
-  TOut         : Token -- .
-  TIn          : Token -- ,
-  TJumpForward : Token -- [
-  TJumpBack    : Token -- ]
+%default total
 
 token : Char -> Maybe Token
 token '<' = Just TLeft
