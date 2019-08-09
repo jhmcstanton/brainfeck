@@ -24,6 +24,25 @@ record JumpLabels (instructionCount : Nat) where
   foward : List (Fin instructionCount)
 %name JumpLabels jumps
 
+data Tape : (left : Nat) -> (right : Nat) -> (size : Nat) -> Type where
+  MkTape : Vect left Cell
+         -> Cell
+         -> Vect right Cell
+         -> Tape left right (left + right)
+%name Tape tape
+
+initTape : (size : Nat) -> Tape 0 size size
+initTape size = MkTape V.Nil 0 (V.replicate size 0)
+
+shiftLeft : Tape (S l) r (S (l + r)) -> Tape l (S r) (S (l + r))
+shiftLeft {l} {r} (MkTape (x :: xs) c ys) = tape'
+  where
+    tape' = rewrite plusSuccRightSucc l r in MkTape xs x (c :: ys)
+
+shiftRight : Tape l (S r) (l + (S r)) -> Tape (S l) r ((S l) + r)
+shiftRight {l} {r} (MkTape xs c (y :: ys)) = tape'
+  where
+    tape' = MkTape (c :: xs) y ys
 
 export
 record VMState (cellCount : Nat) (instructionCount : Nat) where
@@ -59,11 +78,15 @@ growVM {cellCount} vm =
     tapeIndex'    : Fin (ExtendedSize cellCount)
     tapeIndex'    = weakenN _ (tapeIndex vm)
 
--- collectJumps : Instructions n -> JumpLabels n
+-- collectJumps : Instructions (S n) -> JumpLabels (S n)
 -- collectJumps is = collect 0 is where
---   collect : (Fin n) -> Instructions n -> JumpLabels n
+--   collect : (Fin n) -> Instructions k -> JumpLabels k
 --   collect _ [] = Jumps [] []
 --   collect c (x :: xs) =
---     let (Jumps bs fs) = collect (c + 1) xs in
+--     let (Jumps bs fs) = collect (weaken c) xs
+--         counter       = finToNat c
+--     in
 --     case x of
---       case_rhs => ?rhs
+--       TJumpForward => ?rhs_8
+--       TJumpBack => ?rhs_9
+--       _ => Jumps bs fs
