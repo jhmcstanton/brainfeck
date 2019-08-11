@@ -71,11 +71,11 @@ extend {left} {right} {k} (MkTape xs c ys) = tape' where
   extendVect (x :: xs) = x :: extendVect xs
 
 export
-record VMState (cellCount : Nat) (instructionCount : Nat) where
+record VMState (tapeLeft : Nat) (tapeRight : Nat) (instructionCount : Nat) where
   constructor    VM
   pc           : Fin instructionCount
   instructions : Instructions instructionCount
-  cells        : Tape left right (cellCount) -- should left and right be exposed?
+  cells        : Tape tapeLeft tapeRight (tapeLeft + tapeRight)
 %name VMState vm
 
 InitialVMSize : Nat
@@ -88,15 +88,15 @@ InitialVMSize = 1000
 ExtendedSize   : Nat -> Nat
 ExtendedSize n = n + n
 
-initVM : Instructions (S n) -> VMState InitialVMSize (S n)
+initVM : Instructions (S n) -> VMState 0 InitialVMSize (S n)
 initVM instructions = VM 0 instructions (initTape _)
 
--- growVM : VMState cellCount is -> VMState (ExtendedSize cellCount) is
--- growVM {cellCount} vm =
---   VM (pc vm) (instructions vm) extendedCells
---   where
---     extendedCells : Tape (leftLength (cells vm)) (ExtendedSize (rightLength (cells vm))) (ExtendedSize cellCount)
-    -- extendedCells = extend (cells $ ?prf vm)
+growVM : VMState left right is -> VMState left (ExtendedSize right) is
+growVM {left} {right} vm =
+  VM (pc vm) (instructions vm) extendedCells
+  where
+    extendedCells : Tape left (ExtendedSize right) (left + ExtendedSize right)
+    extendedCells = extend (cells vm)
 
 -- collectJumps : Instructions (S n) -> JumpLabels (S n)
 -- collectJumps is = collect 0 is where
