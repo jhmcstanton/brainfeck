@@ -21,8 +21,19 @@ Label = Fin
 record JumpLabels (instructionCount : Nat) where
   constructor Jumps
   back   : List (Fin instructionCount)
-  foward : List (Fin instructionCount)
+  forward : List (Fin instructionCount)
 %name JumpLabels jumps
+
+collectJumps : Instructions (S n) -> JumpLabels (S n)
+collectJumps {n} is = collect 0 is where
+  collect : Integer -> Instructions k -> JumpLabels (S n)
+  collect _ []        = Jumps [] []
+  collect idx (x :: xs) =
+    let jumps@(Jumps bs fs) = collect (idx + 1) xs in
+    case x of
+      TJumpForward => Jumps bs (restrict n idx :: fs)
+      TJumpBack    => Jumps (restrict n idx :: bs) fs
+      _            => jumps
 
 data Tape : (left : Nat) -> (right : Nat) -> (size : Nat) -> Type where
   MkTape : Vect left Cell
@@ -98,15 +109,3 @@ growVM {left} {right} vm =
     extendedCells : Tape left (ExtendedSize right) (left + ExtendedSize right)
     extendedCells = extend (cells vm)
 
--- collectJumps : Instructions (S n) -> JumpLabels (S n)
--- collectJumps is = collect 0 is where
---   collect : (Fin n) -> Instructions k -> JumpLabels k
---   collect _ [] = Jumps [] []
---   collect c (x :: xs) =
---     let (Jumps bs fs) = collect (weaken c) xs
---         counter       = finToNat c
---     in
---     case x of
---       TJumpForward => ?rhs_8
---       TJumpBack => ?rhs_9
---       _ => Jumps bs fs
