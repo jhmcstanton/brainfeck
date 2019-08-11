@@ -124,9 +124,21 @@ shiftLeft {left} {right} vm = VM (pc vm) (instructions vm) cells' where
   cells' = Tape.shiftLeft . cells $ vm
 
 -- >
-shiftRight : VMState left (S right) is -> VMState (S left) right is
-shiftRight {left} {right} vm = VM (pc vm) (instructions vm) cells' where
-  cells' = Tape.shiftRight . cells $ vm
+RightSize : (right : Nat) -> Nat
+RightSize Z = ExtendedSize Z
+RightSize (S k) = k
+
+-- TODO: This technically works, but is not required by
+-- the VM. If left is Nil then the VM should extend
+-- Use growVM in this definition as needed
+shiftRight : VMState left right is -> VMState (S left) (RightSize right) is
+shiftRight {right} vm =
+  case right of
+    Z     => shiftRight $ growVM vm
+    (S k) => VM (pc vm) (instructions vm) (Tape.shiftRight . cells $ vm)
+
+-- shiftRight {left} {right} vm = VM (pc vm) (instructions vm) cells' where
+--   cells' = Tape.shiftRight . cells $ vm
 
 updateCell : (Cell -> Cell) -> VMState left right is -> VMState left right is
 updateCell f = record { cells->current $= f }
