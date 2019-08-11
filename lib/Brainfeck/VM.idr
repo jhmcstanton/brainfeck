@@ -18,9 +18,11 @@ Instructions n = Vect n Token
 Label : Nat -> Type
 Label = Fin
 
+-- TODO: Encode these as sorted lists
+-- note that back would need to be sorted from highest to lowest
 record JumpLabels (instructionCount : Nat) where
   constructor Jumps
-  back   : List (Fin instructionCount)
+  back    : List (Fin instructionCount)
   forward : List (Fin instructionCount)
 %name JumpLabels jumps
 
@@ -61,25 +63,28 @@ namespace Tape
   current : Tape left right size -> Cell
   current (MkTape _ c _) = c
 
-initTape : (size : Nat) -> Tape 0 size size
-initTape size = MkTape V.Nil 0 (V.replicate size 0)
+  set_current : Cell -> Tape left right size -> Tape left right size
+  set_current c' (MkTape l c r) = MkTape l c' r
 
-shiftLeft : Tape (S l) r (S (l + r)) -> Tape l (S r) (S (l + r))
-shiftLeft {l} {r} (MkTape (x :: xs) c ys) = tape'
-  where
-    tape' = rewrite plusSuccRightSucc l r in MkTape xs x (c :: ys)
+  initTape : (size : Nat) -> Tape 0 size size
+  initTape size = MkTape V.Nil 0 (V.replicate size 0)
 
-shiftRight : Tape l (S r) (l + (S r)) -> Tape (S l) r (S (l + r))
-shiftRight {l} {r} (MkTape xs c (y :: ys)) = tape'
-  where
-    tape' = MkTape (c :: xs) y ys
+  shiftLeft : Tape (S l) r ((S l) + r) -> Tape l (S r) (l + (S r))
+  shiftLeft {l} {r} (MkTape (x :: xs) c ys) = tape'
+    where
+      tape' = MkTape xs x (c :: ys)
 
-extend : Tape left right (left + right) -> Tape left (right + k) (left + (right + k))
-extend {left} {right} {k} (MkTape xs c ys) = tape' where
-  tape' = MkTape xs c (extendVect ys)
-  extendVect : Vect n Cell -> Vect (n + k) Cell
-  extendVect [] = replicate _ 0
-  extendVect (x :: xs) = x :: extendVect xs
+  shiftRight : Tape l (S r) (l + (S r)) -> Tape (S l) r ((S l) + r)
+  shiftRight {l} {r} (MkTape xs c (y :: ys)) = tape'
+    where
+      tape' = MkTape (c :: xs) y ys
+
+  extend : Tape left right (left + right) -> Tape left (right + k) (left + (right + k))
+  extend {left} {right} {k} (MkTape xs c ys) = tape' where
+    tape' = MkTape xs c (extendVect ys)
+    extendVect : Vect n Cell -> Vect (n + k) Cell
+    extendVect [] = replicate _ 0
+    extendVect (x :: xs) = x :: extendVect xs
 
 export
 record VMState (tapeLeft : Nat) (tapeRight : Nat) (instructionCount : Nat) where
@@ -109,3 +114,43 @@ growVM {left} {right} vm =
     extendedCells : Tape left (ExtendedSize right) (left + ExtendedSize right)
     extendedCells = extend (cells vm)
 
+-------------------------------------------------
+-- Operations
+-------------------------------------------------
+
+-- <
+shiftLeft : VMState (S left) right is -> VMState left (S right) is
+shiftLeft {left} {right} vm = VM (pc vm) (instructions vm) cells' where
+  cells' = Tape.shiftLeft . cells $ vm
+
+-- >
+shiftRight : VMState left (S right) is -> VMState (S left) right is
+shiftRight {left} {right} vm = VM (pc vm) (instructions vm) cells' where
+  cells' = Tape.shiftRight . cells $ vm
+
+updateCell : (Cell -> Cell) -> VMState left right is -> VMState left right is
+updateCell f = record { cells->current $= f }
+
+-- +
+increment : VMState left right is -> VMState left right is
+increment = updateCell (+1)
+
+-- -
+decrement : VMState left right is -> VMState left right is
+decrement = updateCell (\c => c - 1)
+
+-- .
+outputChar : VMState left right is -> Char -- Probably update this
+outputChar = chr . record { cells->current }
+
+-- ,
+inputChar : Char -> VMState left right is -> VMState left right is -- Probably update this
+inputChar c = record { cells->current = (ord c) }
+
+-- [
+jumpBack : VMState left right is -> VMState left right is
+jumpBack vm = ?jumpBack_rhs
+
+-- ]
+jumpForward : VMState left right is -> VMState left right is
+jumpForward vm = ?jumpForward_rhs
