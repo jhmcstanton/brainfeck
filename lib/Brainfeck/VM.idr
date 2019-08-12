@@ -40,11 +40,26 @@ namespace JumpLabels
         _            => jumps
 
   -- Returns the most recent label ( [ ) to jump back to.
-  -- If no such label exists it returns 0
+  -- If no such label exists returns 0
   jumpBack : Fin (S n) -> JumpLabels (S n) -> Fin (S n)
-  jumpBack pc (Jumps [] forward)        = FZ
-  jumpBack pc (Jumps (x :: xs) forward) =
-    ?jumpBack_rhs_4
+  jumpBack pc (Jumps bs _) = jump FZ pc bs where
+    jump : Fin (S n) -> Fin (S n) -> List (Fin (S n)) -> Fin (S n)
+    jump  _     _      []       = FZ
+    jump prev current (x :: xs) =
+      case compare current x of
+        LT => jump x current xs
+        _  => prev
+
+  -- Returns the next label ( ] ) to jump forward to.
+  -- If no such label exists returns (S n) (effectively exits the program)
+  jumpForward : Fin (S n) -> JumpLabels (S n) -> Fin (S n)
+  jumpForward pc (Jumps _ fs) = jump FZ pc fs where
+    jump : Fin (S n) -> Fin (S n) -> List (Fin (S n)) -> Fin (S n)
+    jump  _     _      []       = last
+    jump prev current (x :: xs) =
+      case compare current x of
+      GT => jump x current xs
+      _  => prev
 
 data Tape : (left : Nat) -> (right : Nat) -> (size : Nat) -> Type where
   MkTape : Vect left Cell
@@ -158,9 +173,11 @@ inputChar : Char -> VMState left right is -> VMState left right is -- Probably u
 inputChar c = record { cells->current = (ord c) }
 
 -- [
-jumpBack : VMState left right is -> VMState left right is
-jumpBack (VM pc instructions jumps cells) = ?jumpBack_rhs_1
+jumpBack : VMState left right (S is) -> VMState left right (S is)
+jumpBack vm =
+  record { pc = JumpLabels.jumpBack (pc vm) (jumps vm) } vm
 
 -- -- ]
-jumpForward : VMState left right is -> VMState left right is
-jumpForward vm = ?jumpForward_rhs
+jumpForward : VMState left right (S is) -> VMState left right (S is)
+jumpForward vm =
+  record { pc = JumpLabels.jumpForward (pc vm) (jumps vm) } vm
