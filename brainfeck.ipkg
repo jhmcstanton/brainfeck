@@ -3,6 +3,7 @@ package brainfeck
 sourcedir  = lib
 modules    = Brainfeck.Lex
            , Brainfeck.Type
+           , Brainfeck.ST
            , Brainfeck.VM
 -- executable = brainfeck
 

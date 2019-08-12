@@ -16,6 +16,7 @@ Instructions   : Nat -> Type
 Instructions n = Vect n Token
 %name Instructions instructions
 
+export
 Label : Nat -> Type
 Label = Fin
 
@@ -23,8 +24,8 @@ Label = Fin
 -- note that back would need to be sorted from highest to lowest
 record JumpLabels (instructionCount : Nat) where
   constructor Jumps
-  back    : List (Fin instructionCount)
-  forward : List (Fin instructionCount)
+  back    : List (Label instructionCount)
+  forward : List (Label instructionCount)
 %name JumpLabels jumps
 
 namespace JumpLabels
@@ -142,6 +143,7 @@ growVM {left} {right} vm =
 -------------------------------------------------
 
 -- <
+export
 shiftLeft : VMState (S left) right is -> VMState left (S right) is
 shiftLeft {left} {right} vm = VM (pc vm) (instructions vm) (jumps vm) cells' where
   cells' = Tape.shiftLeft . cells $ vm
@@ -149,6 +151,7 @@ shiftLeft {left} {right} vm = VM (pc vm) (instructions vm) (jumps vm) cells' whe
 -- >
 -- This was going to also increase the size of the vm if Right = Z, but
 -- that really complicates the type.
+export
 shiftRight : VMState left (S right) is -> VMState (S left) right is
 shiftRight {right} vm = VM (pc vm) (instructions vm) (jumps vm) cells' where
   cells' = Tape.shiftRight . cells $ vm
@@ -157,27 +160,33 @@ updateCell : (Cell -> Cell) -> VMState left right is -> VMState left right is
 updateCell f = record { cells->current $= f }
 
 -- +
+export
 increment : VMState left right is -> VMState left right is
 increment = updateCell (+1)
 
 -- -
+export
 decrement : VMState left right is -> VMState left right is
 decrement = updateCell (\c => c - 1)
 
 -- .
+export
 outputChar : VMState left right is -> Char -- Probably update this
 outputChar = chr . record { cells->current }
 
 -- ,
+export
 inputChar : Char -> VMState left right is -> VMState left right is -- Probably update this
 inputChar c = record { cells->current = (ord c) }
 
 -- [
+export
 jumpBack : VMState left right (S is) -> VMState left right (S is)
 jumpBack vm =
   record { pc = JumpLabels.jumpBack (pc vm) (jumps vm) } vm
 
 -- -- ]
+export
 jumpForward : VMState left right (S is) -> VMState left right (S is)
 jumpForward vm =
   record { pc = JumpLabels.jumpForward (pc vm) (jumps vm) } vm
