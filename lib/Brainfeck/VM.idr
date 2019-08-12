@@ -11,6 +11,7 @@ import Brainfeck.Type
 Cell : Type
 Cell = Int
 
+export
 Instructions   : Nat -> Type
 Instructions n = Vect n Token
 %name Instructions instructions
@@ -26,16 +27,24 @@ record JumpLabels (instructionCount : Nat) where
   forward : List (Fin instructionCount)
 %name JumpLabels jumps
 
-collectJumps : Instructions (S n) -> JumpLabels (S n)
-collectJumps {n} is = collect 0 is where
-  collect : Integer -> Instructions k -> JumpLabels (S n)
-  collect _ []        = Jumps [] []
-  collect idx (x :: xs) =
-    let jumps@(Jumps bs fs) = collect (idx + 1) xs in
-    case x of
-      TJumpForward => Jumps bs (restrict n idx :: fs)
-      TJumpBack    => Jumps (restrict n idx :: bs) fs
-      _            => jumps
+namespace JumpLabels
+  collectJumps : Instructions (S n) -> JumpLabels (S n)
+  collectJumps {n} is = collect 0 is where
+    collect : Integer -> Instructions k -> JumpLabels (S n)
+    collect _ []        = Jumps [] []
+    collect idx (x :: xs) =
+      let jumps@(Jumps bs fs) = collect (idx + 1) xs in
+      case x of
+        TJumpForward => Jumps bs (restrict n idx :: fs)
+        TJumpBack    => Jumps (restrict n idx :: bs) fs
+        _            => jumps
+
+  -- Returns the most recent label ( [ ) to jump back to.
+  -- If no such label exists it returns 0
+  jumpBack : Fin (S n) -> JumpLabels (S n) -> Fin (S n)
+  jumpBack pc (Jumps [] forward)        = FZ
+  jumpBack pc (Jumps (x :: xs) forward) =
+    ?jumpBack_rhs_4
 
 data Tape : (left : Nat) -> (right : Nat) -> (size : Nat) -> Type where
   MkTape : Vect left Cell
@@ -91,28 +100,27 @@ record VMState (tapeLeft : Nat) (tapeRight : Nat) (instructionCount : Nat) where
   constructor    VM
   pc           : Fin instructionCount
   instructions : Instructions instructionCount
+  jumps        : JumpLabels instructionCount
   cells        : Tape tapeLeft tapeRight (tapeLeft + tapeRight)
 %name VMState vm
 
+CellCount : VMState left right is -> Nat
+CellCount {left} {right} _ = left + right
+
+public export
 InitialVMSize : Nat
 InitialVMSize = 1000
 
--- it would be nice to use * instead of +
--- but that is trickier to work with.
--- These are linked lists anyway so eh
--- TODO: try using *
-ExtendedSize   : Nat -> Nat
-ExtendedSize n = n + n
-
+export
 initVM : Instructions (S n) -> VMState 0 InitialVMSize (S n)
-initVM instructions = VM 0 instructions (initTape _)
+initVM instructions = VM 0 instructions (collectJumps instructions) (initTape _)
 
-growVM : VMState left right is -> VMState left (ExtendedSize right) is
+growVM : (vm : VMState left right is) -> VMState left (right + (CellCount vm)) is
 growVM {left} {right} vm =
-  VM (pc vm) (instructions vm) extendedCells
+  VM (pc vm) (instructions vm) (jumps vm) extendedCells
   where
-    extendedCells : Tape left (ExtendedSize right) (left + ExtendedSize right)
-    extendedCells = extend (cells vm)
+    extendedCells : Tape left (right + (left + right)) (left + (right + (left + right)))
+    extendedCells = extend (cells vm) {k = CellCount vm}
 
 -------------------------------------------------
 -- Operations
@@ -120,25 +128,15 @@ growVM {left} {right} vm =
 
 -- <
 shiftLeft : VMState (S left) right is -> VMState left (S right) is
-shiftLeft {left} {right} vm = VM (pc vm) (instructions vm) cells' where
+shiftLeft {left} {right} vm = VM (pc vm) (instructions vm) (jumps vm) cells' where
   cells' = Tape.shiftLeft . cells $ vm
 
 -- >
-RightSize : (right : Nat) -> Nat
-RightSize Z = ExtendedSize Z
-RightSize (S k) = k
-
--- TODO: This technically works, but is not required by
--- the VM. If left is Nil then the VM should extend
--- Use growVM in this definition as needed
-shiftRight : VMState left right is -> VMState (S left) (RightSize right) is
-shiftRight {right} vm =
-  case right of
-    Z     => shiftRight $ growVM vm
-    (S k) => VM (pc vm) (instructions vm) (Tape.shiftRight . cells $ vm)
-
--- shiftRight {left} {right} vm = VM (pc vm) (instructions vm) cells' where
---   cells' = Tape.shiftRight . cells $ vm
+-- This was going to also increase the size of the vm if Right = Z, but
+-- that really complicates the type.
+shiftRight : VMState left (S right) is -> VMState (S left) right is
+shiftRight {right} vm = VM (pc vm) (instructions vm) (jumps vm) cells' where
+  cells' = Tape.shiftRight . cells $ vm
 
 updateCell : (Cell -> Cell) -> VMState left right is -> VMState left right is
 updateCell f = record { cells->current $= f }
@@ -161,8 +159,8 @@ inputChar c = record { cells->current = (ord c) }
 
 -- [
 jumpBack : VMState left right is -> VMState left right is
-jumpBack vm = ?jumpBack_rhs
+jumpBack (VM pc instructions jumps cells) = ?jumpBack_rhs_1
 
--- ]
+-- -- ]
 jumpForward : VMState left right is -> VMState left right is
 jumpForward vm = ?jumpForward_rhs
