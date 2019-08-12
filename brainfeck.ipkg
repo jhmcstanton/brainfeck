@@ -3,5 +3,12 @@ package brainfeck
 sourcedir  = lib
 modules    = Brainfeck.Lex
            , Brainfeck.Type
-           , Brainfec.VM
+           , Brainfeck.VM
 -- executable = brainfeck
+
+pkgs       = contrib
+
+
+author     = Jim McStanton
+maintainer = Jim McStanton
+license    = MIT
