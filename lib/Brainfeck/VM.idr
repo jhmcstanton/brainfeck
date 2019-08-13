@@ -8,6 +8,7 @@ import Brainfeck.Type
 
 %default total
 
+export
 Cell : Type
 Cell = Int
 
@@ -123,12 +124,15 @@ record VMState (tapeLeft : Nat) (tapeRight : Nat) (instructionCount : Nat) where
 CellCount : VMState left right is -> Nat
 CellCount {left} {right} _ = left + right
 
-public export
 InitialVMSize : Nat
 InitialVMSize = 1000
 
 export
-initVM : Instructions (S n) -> VMState 0 InitialVMSize (S n)
+InitialVM : (instructionCount : Nat) -> Type
+InitialVM instructionCount = VMState 0 InitialVMSize instructionCount
+
+export
+initVM : Instructions (S n) -> InitialVM (S n)
 initVM instructions = VM 0 instructions (collectJumps instructions) (initTape _)
 
 growVM : (vm : VMState left right is) -> VMState left (right + (CellCount vm)) is
@@ -171,7 +175,7 @@ decrement = updateCell (\c => c - 1)
 
 -- .
 export
-outputChar : VMState left right is -> Char -- Probably update this
+outputChar : VMState left right is -> Char
 outputChar = chr . record { cells->current }
 
 -- ,
