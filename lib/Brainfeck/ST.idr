@@ -80,11 +80,8 @@ shiftRight : {l : Nat} -> {r : Nat} -> {auto p : l + r = S k}
            -> ST io () [ vm ::: VMST l r i :-> VMShiftedRight l r p i ]
 shiftRight {l = Z} {r = Z} {p = Refl} _ impossible
 shiftRight {l = (S k)} {r = Z} vmVar = update vmVar (VM.shiftRight . grow) where
+  growProof : (vm : VMState llen (0 + (rlen + 0)) i) -> VMState llen rlen i
+  growProof {rlen} vm = rewrite plusCommutative 0 rlen in vm
   grow : VMState (S k) 0 i -> VMState (S k) (S k) i
-  grow vm = let vm' = growVM in
-            ?rhs
-  -- vo <- call $ read vmVar
-  -- let vm = VM.shiftRight $ growVM vo
-  -- -- let shiftedVM = VM.shiftRight (?prf vm)
-  -- write vmVar shiftedVM
-shiftRight {r = (S k)} vm = ?shiftRight_rhs_2
+  grow vm = growProof (growVM vm)
+shiftRight {r = (S k)} vm = update vm VM.shiftRight
