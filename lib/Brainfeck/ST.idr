@@ -69,9 +69,22 @@ shiftLeft {l = Z} vm = do
   delete vm
 shiftLeft {l = (S k)} vm = update vm (VM.shiftLeft)
 
--- shiftRight : {l : Nat} -> {r : Nat} -> {auto p : LTE 1 (l + r)}
---            -> (vm : Var)
---            -> STrans io () [vm ::: VMST l r i]
---                 (\_ => case r of
---                          Z   => [vm ::: VMST (S l) (l + l - 1) i]
---                          S k => [vm ::: VMST (S l) k i])
+VMShiftedRight : (l : Nat) -> (r : Nat) -> (p : l + r = S k) -> (i : Nat) -> Type
+VMShiftedRight Z Z Refl _ impossible
+VMShiftedRight (S k) Z _ i = VMST (S (S k)) k i
+VMShiftedRight l (S k) _ i = VMST (S l) k i
+
+
+shiftRight : {l : Nat} -> {r : Nat} -> {auto p : l + r = S k}
+           -> (vm : Var)
+           -> ST io () [ vm ::: VMST l r i :-> VMShiftedRight l r p i ]
+shiftRight {l = Z} {r = Z} {p = Refl} _ impossible
+shiftRight {l = (S k)} {r = Z} vmVar = update vmVar (VM.shiftRight . grow) where
+  grow : VMState (S k) 0 i -> VMState (S k) (S k) i
+  grow vm = let vm' = growVM in
+            ?rhs
+  -- vo <- call $ read vmVar
+  -- let vm = VM.shiftRight $ growVM vo
+  -- -- let shiftedVM = VM.shiftRight (?prf vm)
+  -- write vmVar shiftedVM
+shiftRight {r = (S k)} vm = ?shiftRight_rhs_2

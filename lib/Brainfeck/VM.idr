@@ -121,9 +121,6 @@ record VMState (tapeLeft : Nat) (tapeRight : Nat) (instructionCount : Nat) where
   cells        : Tape tapeLeft tapeRight (tapeLeft + tapeRight)
 %name VMState vm
 
-CellCount : VMState left right is -> Nat
-CellCount {left} {right} _ = left + right
-
 InitialVMSize : Nat
 InitialVMSize = 1000
 
@@ -135,12 +132,13 @@ export
 initVM : Instructions (S n) -> InitialVM (S n)
 initVM instructions = VM 0 instructions (collectJumps instructions) (initTape _)
 
-growVM : (vm : VMState left right is) -> VMState left (right + (CellCount vm)) is
+export
+growVM : (vm : VMState left right is) -> VMState left (right + (left + right)) is
 growVM {left} {right} vm =
   VM (pc vm) (instructions vm) (jumps vm) extendedCells
   where
     extendedCells : Tape left (right + (left + right)) (left + (right + (left + right)))
-    extendedCells = extend (cells vm) {k = CellCount vm}
+    extendedCells = extend (cells vm) {k = left + right}
 
 -------------------------------------------------
 -- Operations
