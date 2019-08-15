@@ -58,6 +58,19 @@ increment = updateVM VM.increment
 decrement : (vm : Var) -> ST id () [vm ::: VMST l r i]
 decrement = updateVM VM.decrement
 
+jumpBack : (vm : Var) -> ST id () [vm ::: VMST l r (S i)]
+jumpBack = updateVM VM.jumpBack
+
+jumpForward : (vm : Var) -> ST id () [vm ::: VMST l r (S i)]
+jumpForward = updateVM VM.jumpForward
+
+data StepResult : Type where
+  Error   : String -> StepResult
+  Success : (l : Nat) -> (r : Nat) -> StepResult
+
+ResultST : Type
+ResultST = State StepResult
+
 shiftLeft : CharIO io
           => (vm : Var)
           -> STrans io () [vm ::: VMST l r i]
@@ -74,10 +87,9 @@ VMShiftedRight Z Z Refl _ impossible
 VMShiftedRight (S k) Z _ i = VMST (S (S k)) k i
 VMShiftedRight l (S k) _ i = VMST (S l) k i
 
-
 shiftRight : {l : Nat} -> {r : Nat} -> {auto p : l + r = S k}
            -> (vm : Var)
-           -> ST io () [ vm ::: VMST l r i :-> VMShiftedRight l r p i ]
+           -> ST id () [ vm ::: VMST l r i :-> VMShiftedRight l r p i ]
 shiftRight {l = Z} {r = Z} {p = Refl} _ impossible
 shiftRight {l = (S k)} {r = Z} vmVar = update vmVar (VM.shiftRight . grow) where
   growProof : (vm : VMState llen (0 + (rlen + 0)) i) -> VMState llen rlen i
@@ -85,3 +97,23 @@ shiftRight {l = (S k)} {r = Z} vmVar = update vmVar (VM.shiftRight . grow) where
   grow : VMState (S k) 0 i -> VMState (S k) (S k) i
   grow vm = growProof (growVM vm)
 shiftRight {r = (S k)} vm = update vm VM.shiftRight
+
+stepSuccess : {l : Nat} -> {r : Nat} -> StepResult
+stepSuccess {l} {r} = Success l r
+
+step : CharIO io => {result : Var} -> (vm : Var)
+     -> STrans io StepResult [ vm ::: VMST l r (S i)]
+        (\res => case res of
+                   (Error x)       => [ vm ::: VMST l  r  (S i) ]
+                   (Success l' r') => [ vm ::: VMST l' r' (S i) ] )
+step {l} {r} vmVar = do
+  vm <- read vmVar
+  case instruction vm of
+    TLeft => ?rhs_1
+    TRight => ?rhs_2
+    TInc => increment vmVar >>= \_ => pure stepSuccess
+    TDec => decrement vmVar >>= \_ => pure stepSuccess
+    TOut => outputChar vmVar >>= \_ => pure stepSuccess
+    TIn => readChar vmVar >>= \_ => pure stepSuccess
+    TJumpForward => jumpForward vmVar >>= \_ => pure stepSuccess
+    TJumpBack => jumpBack vmVar >>= \_ => pure stepSuccess

@@ -121,6 +121,10 @@ record VMState (tapeLeft : Nat) (tapeRight : Nat) (instructionCount : Nat) where
   cells        : Tape tapeLeft tapeRight (tapeLeft + tapeRight)
 %name VMState vm
 
+export
+instruction : VMState l r i -> Token
+instruction vm = index (pc vm) (instructions vm)
+
 InitialVMSize : Nat
 InitialVMSize = 1000
 
