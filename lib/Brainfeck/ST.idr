@@ -63,8 +63,8 @@ jumpForward : (vm : Var) -> ST id () [vm ::: VMST l r (S i)]
 jumpForward = updateVM VM.jumpForward
 
 data StepResult : Type where
-  StepError   : String -> StepResult
-  StepSuccess : (l : Nat) -> (r : Nat) -> StepResult
+  StepError   : String -> (l : Nat) -> (r : Nat) -> (i : Nat) -> StepResult
+  StepSuccess : (l : Nat) -> (r : Nat) -> (i : Nat) -> StepResult
 
 ResultST : Type
 ResultST = State StepResult
@@ -79,13 +79,13 @@ shiftLeft : CharIO io
           => (vm : Var)
           -> ST io StepResult [vm ::: VMST l r i :->
                                  (\res => case res of
-                                            (StepError x) => VMST l r i
-                                            (StepSuccess l' r') => VMST l' r' i)]
-shiftLeft {l = Z} _ = do
+                                            (StepError e l r i)   => VMST l r i
+                                            (StepSuccess l' r' i) => VMST l' r' i)]
+shiftLeft {l = Z} {r} {i} _ = do
   let msg = "Cell index is 0. Unable to leftshift."
   error msg
-  pure $ StepError msg
-shiftLeft {l = (S k)} {r} vm = update vm (VM.shiftLeft) >>= \_ => pure (StepSuccess k (S r))
+  pure $ StepError msg Z r i
+shiftLeft {l = (S k)} {r} {i} vm = update vm (VM.shiftLeft) >>= \_ => pure (StepSuccess k (S r) i)
 
 shiftRight : {l : Nat} -> {r : Nat} -> {auto p : l + r = S k}
            -> (vm : Var)
@@ -102,24 +102,35 @@ shiftRight {l = (S k)} {r = Z} vmVar =
     grow vm = growProof (growVM vm)
 shiftRight {l} {r = (S k)} vm = update vm VM.shiftRight >>= \_ => pure (STrivial (S l) k)
 
-stepSuccess : {l : Nat} -> {r : Nat} -> StepResult
-stepSuccess {l} {r} = StepSuccess l r
+stepSuccess : {l : Nat} -> {r : Nat} -> {i : Nat} -> StepResult
+stepSuccess {l} {r} {i} = StepSuccess l r i
 
-step : CharIO io => {result : Var} -> {auto p : l + r = S k }
+step : CharIO io => {auto p : l + r = S k }
      -> (vm : Var)
-     -> STrans io StepResult [ vm ::: VMST l r (S i)]
-        (\res => case res of
-                   (StepError x)       => [ vm ::: VMST l  r  (S i) ]
-                   (StepSuccess l' r') => [ vm ::: VMST l' r' (S i) ] )
-step {l} {r} vmVar = do
+     -> ST io StepResult [ vm ::: VMST l r (S i) :->
+                                (\res => case res of
+                                           (StepError e l  r  i) => VMST l  r  i
+                                           (StepSuccess l' r' i) => VMST l' r' i) ]
+step {l} {r} {i} vmVar = do
   vm <- read vmVar
   case instruction vm of
-    -- TLeft doesn't type check
-    TLeft        => shiftLeft vmVar
-    TRight       => shiftRight vmVar >>= \(STrivial l' r') => pure (StepSuccess {l=l'} {r=r'})
+    TLeft        => do vm' <- shiftLeft vmVar
+                       case vm' of
+                         (StepError e l  r  i) => pure $ StepError e l r i
+                         (StepSuccess l' r' i) => pure $ StepSuccess l' r' i
+    TRight       => shiftRight vmVar >>= \(STrivial l' r') => pure (StepSuccess l' r' (S i))
     TInc         => increment vmVar >>= \_ => pure stepSuccess
     TDec         => decrement vmVar >>= \_ => pure stepSuccess
     TOut         => outputChar vmVar >>= \_ => pure stepSuccess
     TIn          => readChar vmVar >>= \_ => pure stepSuccess
     TJumpForward => jumpForward vmVar >>= \_ => pure stepSuccess
     TJumpBack    => jumpBack vmVar >>= \_ => pure stepSuccess
+
+run : CharIO io => {auto p : l + r = S k } -> (vm : Var) -> ST io () [ vm ::: VMST l r (S i) ]
+-- run vmVar = do
+--   res <- step vmVar
+--   case res of
+--     (StepError _ _ _ _) => pure ()
+--     (StepSuccess _ _ _) => do
+--       vm <- read vmVar
+--       ?rhs
