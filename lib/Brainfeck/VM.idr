@@ -12,21 +12,13 @@ export
 Cell : Type
 Cell = Int
 
--- TODO: Use a better datatype for this (Brainfeck.Instructions.Instructions?)
--- This hasn't been profiled, but it seems trivially true that doing "random" access indexing
--- with ineffecient Fin's is going to cause speed problems
--- Probably wait until its actually an issue first though
-export
-Instructions   : Nat -> Type
-Instructions n = Vect n Token
-%name Instructions instructions
-
 export
 Label : Nat -> Type
 Label = Fin
 
 -- TODO: Encode these as sorted lists
 -- note that back would need to be sorted from highest to lowest
+export
 record JumpLabels (instructionCount : Nat) where
   constructor Jumps
   back    : List (Label instructionCount)
@@ -67,6 +59,7 @@ namespace JumpLabels
       GT => jump x current xs
       _  => prev
 
+export
 data Tape : (left : Nat) -> (right : Nat) -> (size : Nat) -> Type where
   MkTape : Vect left Cell
          -> Cell
@@ -116,7 +109,7 @@ namespace Tape
     extendVect [] = replicate _ 0
     extendVect (x :: xs) = x :: extendVect xs
 
-export
+public export
 record VMState (tapeLeft : Nat) (tapeRight : Nat) (instructionCount : Nat) where
   constructor    VM
   pc           : Fin instructionCount
@@ -129,10 +122,11 @@ export
 instruction : VMState l r i -> Token
 instruction vm = index (pc vm) (instructions vm)
 
+public export
 InitialVMSize : Nat
 InitialVMSize = 1000
 
-export
+public export
 InitialVM : (instructionCount : Nat) -> Type
 InitialVM instructionCount = VMState 0 InitialVMSize instructionCount
 

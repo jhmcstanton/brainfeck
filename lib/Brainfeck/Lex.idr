@@ -1,6 +1,6 @@
 module Brainfeck.Lex
 
-import Data.Vect
+import Data.Vect as V
 
 import Brainfeck.Type
 
@@ -18,8 +18,8 @@ token ']' = Just TJumpBack
 token _   = Nothing
 
 
-lexList : List Char -> (num_tokens : Nat ** Vect num_tokens Token)
-lexList [] = (0 ** [])
+lexList : List Char -> (num_tokens : Nat ** Instructions num_tokens)
+lexList [] = (0 ** V.Nil)
 lexList (x :: xs) =
   case lexList xs of
     (_ ** tokens) => case token x of
@@ -27,5 +27,5 @@ lexList (x :: xs) =
                          (Just t) => (_ ** t :: tokens)
 
 export
-lex : (program : String) -> (num_tokens ** Vect num_tokens Token)
+lex : (program : String) -> (num_tokens ** Instructions num_tokens)
 lex program = lexList (unpack program)

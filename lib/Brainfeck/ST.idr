@@ -5,6 +5,7 @@ import Data.Fin
 import Data.Vect as V
 import System
 
+import Brainfeck.Lex
 import Brainfeck.Type
 import Brainfeck.VM as VM
 
@@ -25,15 +26,6 @@ CharIO IO where
 export
 VMST : Nat -> Nat -> Nat -> Type
 VMST l r i = State (VMState l r i)
-
-export
-InitVMST : Nat -> Type
-InitVMST i = State (InitialVM i)
-
-export
-initST : CharIO io => Instructions (S n) -> ST io Var [add $ InitVMST (S n)]
-initST instructions = do let vm = initVM instructions
-                         new vm
 
 readChar : CharIO io => (vm : Var) -> ST io () [vm ::: VMST l r i]
 readChar vm = do c <- getChar
@@ -87,12 +79,11 @@ shiftLeft {l = Z} {r} {i} _ = do
   pure $ StepError msg Z r i
 shiftLeft {l = (S k)} {r} {i} vm = update vm (VM.shiftLeft) >>= \_ => pure (StepSuccess k (S r) i)
 
-shiftRight : {l : Nat} -> {r : Nat} -> {auto p : l + r = S k}
+shiftRight : {l : Nat} -> {r : Nat} -> {auto p : IsSucc (l + r)}
            -> (vm : Var)
            -> ST id AlwaysSucceeds [ vm ::: VMST l r i :->
                                       (\res => case res of
                                                  (STrivial l' r') => VMST l' r' i) ]
-shiftRight {l = Z} {r = Z} {p = Refl} _ impossible
 shiftRight {l = (S k)} {r = Z} vmVar =
   update vmVar (VM.shiftRight . grow) >>= \_ => pure (STrivial (S (S k)) k)
   where
@@ -105,7 +96,7 @@ shiftRight {l} {r = (S k)} vm = update vm VM.shiftRight >>= \_ => pure (STrivial
 stepSuccess : {l : Nat} -> {r : Nat} -> {i : Nat} -> StepResult
 stepSuccess {l} {r} {i} = StepSuccess l r i
 
-step : CharIO io => {auto p : l + r = S k }
+step : CharIO io => {auto p : IsSucc (l + r) }
      -> (vm : Var)
      -> ST io StepResult [ vm ::: VMST l r (S i) :->
                                 (\res => case res of
@@ -126,11 +117,36 @@ step {l} {r} {i} vmVar = do
     TJumpForward => jumpForward vmVar >>= \_ => pure stepSuccess
     TJumpBack    => jumpBack vmVar >>= \_ => pure stepSuccess
 
-run : CharIO io => {auto p : l + r = S k } -> (vm : Var) -> ST io () [ vm ::: VMST l r (S i) ]
--- run vmVar = do
---   res <- step vmVar
---   case res of
---     (StepError _ _ _ _) => pure ()
---     (StepSuccess _ _ _) => do
---       vm <- read vmVar
---       ?rhs
+partial -- :(
+runLoop : CharIO io => {auto p : IsSucc (l + r) } -> (vm : Var) -> ST io () [ remove vm (VMST l r (S i)) ]
+runLoop vmVar = do
+  res <- step vmVar
+  case res of
+    (StepError _ _ _ (S k)) => error "Aborting" >>= \_ => delete vmVar
+    (StepError _ _ _  Z   ) => error "Ended up in an undefined state (missing all instructions)" >>= \_ => delete vmVar
+    (StepSuccess _ _  Z   ) => do error "Ended up in an undefined state (missing all instructions) after successful step"
+                                  delete vmVar
+    (StepSuccess tapeL tapeR (S k)) => do
+      case isItSucc (tapeL + tapeR) of
+         No _    => error "Somehow the tape was deeted. Aborting." >>= \_ => delete vmVar
+         Yes prf => do
+           vm <- read vmVar
+           let pc' = FS (pc vm)
+           case strengthen pc' of
+             (Left l) => delete vmVar -- end of program
+             (Right r) => runLoop vmVar
+
+partial
+export
+runProgram : String -> IO ()
+runProgram progText =
+  case lex progText of
+    (Z ** _ ) => putStrLn "Nothing to do. Bye"
+    (S n ** ts) => do
+      let vm = initVM ts
+      case isItSucc InitialVMSize of
+        (No _)    => putStrLn "This was compiled with an invalid InitialVMSize! See ya."
+        (Yes prf) => run (do
+                       v <- new vm
+                       runLoop {p = prf} {l = 0} {r = InitialVMSize} v)
+
