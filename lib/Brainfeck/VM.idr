@@ -12,6 +12,10 @@ export
 Cell : Type
 Cell = Int
 
+-- TODO: Use a better datatype for this (Brainfeck.Instructions.Instructions?)
+-- This hasn't been profiled, but it seems trivially true that doing "random" access indexing
+-- with ineffecient Fin's is going to cause speed problems
+-- Probably wait until its actually an issue first though
 export
 Instructions   : Nat -> Type
 Instructions n = Vect n Token
