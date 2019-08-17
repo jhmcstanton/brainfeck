@@ -2,3 +2,4 @@
 *.swp
 *.ibc
 brainfeck
+lib/Brainfeck/Test.idr

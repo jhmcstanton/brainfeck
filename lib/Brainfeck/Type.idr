@@ -5,6 +5,10 @@ import Data.Vect
 %default total
 
 public export
+Label : Nat -> Type
+Label = Fin
+
+public export
 data Token     : Type  where
   TLeft        : Token -- <
   TRight       : Token -- >
@@ -16,10 +20,6 @@ data Token     : Type  where
   TJumpBack    : Token -- ]
 
 public export
-Label : Nat -> Type
-Label = Fin
-
-public export
 data Operation : Type where
   OLeft        : Operation -- <
   ORight       : Operation -- >
@@ -27,8 +27,8 @@ data Operation : Type where
   ODec         : Operation -- -
   OOut         : Operation -- .
   OIn          : Operation -- ,
-  OJumpForward : Label f -> Operation -- [
-  OJumpBack    : Label b -> Operation -- ]
+  OJumpZero    : Label f -> Operation -- [
+  OJumpNZero   : Label b -> Operation -- ]
 
 export
 tokenToS : Token -> String
@@ -42,18 +42,26 @@ tokenToS TJumpForward = "["
 tokenToS TJumpBack = "]"
 
 operationToS : Operation -> String
-operationToS OLeft = "<"
-operationToS ORight = ">"
-operationToS OInc = "+"
-operationToS ODec = "-"
-operationToS OOut = "."
-operationToS OIn = ","
-operationToS (OJumpForward l) = "[ " ++ show (finToNat l)
-operationToS (OJumpBack    l) = show (finToNat l) ++ " ]"
+operationToS OLeft          = "<"
+operationToS ORight         = ">"
+operationToS OInc           = "+"
+operationToS ODec           = "-"
+operationToS OOut           = "."
+operationToS OIn            = ","
+operationToS (OJumpZero  l) = "[ " ++ show (finToNat l)
+operationToS (OJumpNZero l) = show (finToNat l) ++ " ]"
+
+public export
+data Location : Type where
+  Loc : (line : Nat) -> (col : Nat) -> Location
+
+export
+locToS : Location -> String
+locToS (Loc l c) = "Line: " ++ show l ++ " Column: " ++ show c
 
 public export
 Tokens   : Nat -> Type
-Tokens n = Vect n Token
+Tokens n = Vect n (Location, Token)
 %name Tokens tokens
 
 -- TODO: Use a better datatype for this (Brainfeck.Instructions.Instructions?)
@@ -62,5 +70,5 @@ Tokens n = Vect n Token
 -- Probably wait until its actually an issue first though
 public export
 Instructions   : Nat -> Type
-Instructions n = Vect n Token -- Operation
+Instructions n = Vect n Operation
 %name Instructions instructions

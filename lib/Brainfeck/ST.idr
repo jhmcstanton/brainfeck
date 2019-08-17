@@ -1,5 +1,7 @@
 module Brainfeck.ST
-
+-- Local Variables:
+-- idris-load-packages: ("contrib")
+-- End:
 import Control.ST
 import Data.Fin
 import Data.Vect as V
@@ -123,7 +125,7 @@ step {l} {r} {i} vmVar = do
     TJumpForward => jumpForward vmVar >>= \_ => pure stepSuccess
     TJumpBack    => jumpBack vmVar >>= \_ => pure stepSuccess
 
-partial -- :(
+partial
 runLoop : CharIO io => {auto p : IsSucc (l + r) } -> (vm : Var) -> ST io () [ remove vm (VMST l r (S i)) ]
 runLoop vmVar = do
   -- TODO: remove the next 2 lines
