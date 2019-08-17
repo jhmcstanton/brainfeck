@@ -15,6 +15,18 @@ data Token     : Type  where
   TJumpForward : Token -- [
   TJumpBack    : Token -- ]
 
+-- Remove this
+export
+toS : Token -> String
+toS TLeft = "<"
+toS TRight = ">"
+toS TInc = "+"
+toS TDec = "-"
+toS TOut = "."
+toS TIn = ","
+toS TJumpForward = "["
+toS TJumpBack = "]"
+
 
 -- TODO: Use a better datatype for this (Brainfeck.Instructions.Instructions?)
 -- This hasn't been profiled, but it seems trivially true that doing "random" access indexing

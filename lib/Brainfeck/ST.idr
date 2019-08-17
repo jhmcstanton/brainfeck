@@ -128,13 +128,15 @@ runLoop vmVar = do
                                   delete vmVar
     (StepSuccess tapeL tapeR (S k)) => do
       case isItSucc (tapeL + tapeR) of
-         No _    => error "Somehow the tape was deeted. Aborting." >>= \_ => delete vmVar
+         No _    => error "Somehow the tape was deleted. Aborting." >>= \_ => delete vmVar
          Yes prf => do
            vm <- read vmVar
            let pc' = FS (pc vm)
            case strengthen pc' of
              (Left l) => delete vmVar -- end of program
-             (Right r) => runLoop vmVar
+             (Right r) => do
+               update vmVar (record { pc = r })
+               runLoop vmVar
 
 partial
 export

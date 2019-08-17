@@ -1,14 +1,12 @@
-package brainfeck
+package brainfeck-lib
 
 sourcedir  = lib
 modules    = Brainfeck.Lex
            , Brainfeck.Type
            , Brainfeck.ST
            , Brainfeck.VM
--- executable = brainfeck
 
 pkgs       = contrib
-
 
 author     = Jim McStanton
 maintainer = Jim McStanton

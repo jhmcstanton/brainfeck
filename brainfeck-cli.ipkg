@@ -1,0 +1,12 @@
+package brainfeck-cli
+
+sourcedir  = bin
+modules    = Brainfeck.CLI
+main       = Brainfeck.CLI
+executable = brainfeck
+
+pkgs       = brainfeck-lib
+
+author     = Jim McStanton
+maintainer = Jim McStanton
+license    = MIT
