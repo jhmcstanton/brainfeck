@@ -18,7 +18,7 @@ token ']' = Just TJumpBack
 token _   = Nothing
 
 
-lexList : List Char -> (num_tokens : Nat ** Instructions num_tokens)
+lexList : List Char -> (num_tokens : Nat ** Tokens num_tokens)
 lexList [] = (0 ** V.Nil)
 lexList (x :: xs) =
   case lexList xs of
@@ -27,5 +27,5 @@ lexList (x :: xs) =
                          (Just t) => (_ ** t :: tokens)
 
 export
-lex : (program : String) -> (num_tokens ** Instructions num_tokens)
+lex : (program : String) -> (num_tokens ** Tokens num_tokens)
 lex program = lexList (unpack program)

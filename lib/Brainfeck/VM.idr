@@ -12,10 +12,6 @@ export
 Cell : Type
 Cell = Int
 
-export
-Label : Nat -> Type
-Label = Fin
-
 -- TODO: Encode these as sorted lists
 -- note that back would need to be sorted from highest to lowest
 export
@@ -27,7 +23,7 @@ record JumpLabels (instructionCount : Nat) where
 
 namespace JumpLabels
   collectJumps : Instructions (S n) -> JumpLabels (S n)
-  collectJumps {n} is = collect 0 is where
+  collectJumps {n} is = (collect 0 is) where
     collect : Integer -> Instructions k -> JumpLabels (S n)
     collect _ []        = Jumps [] []
     collect idx (x :: xs) =
@@ -40,24 +36,31 @@ namespace JumpLabels
   -- Returns the most recent label ( [ ) to jump back to.
   -- If no such label exists returns 0
   jumpBack : Fin (S n) -> JumpLabels (S n) -> Fin (S n)
-  jumpBack pc (Jumps bs _) = jump FZ pc bs where
+  jumpBack pc js = jump FZ pc (forward js) where
     jump : Fin (S n) -> Fin (S n) -> List (Fin (S n)) -> Fin (S n)
-    jump  _     _      []       = FZ
+    jump prev _      []         = prev
     jump prev current (x :: xs) =
-      case compare current x of
+      case compare x current of
         LT => jump x current xs
-        _  => prev
+        _  => prev --jump current xs
 
   -- Returns the next label ( ] ) to jump forward to.
-  -- If no such label exists returns (S n) (effectively exits the program)
+  -- If no such label exists returns (FS n) (effectively exits the program)
   jumpForward : Fin (S n) -> JumpLabels (S n) -> Fin (S n)
-  jumpForward pc (Jumps _ fs) = jump FZ pc fs where
+  jumpForward pc js = jump last pc (back js) where
     jump : Fin (S n) -> Fin (S n) -> List (Fin (S n)) -> Fin (S n)
-    jump  _     _      []       = last
+    jump prev _        []       = prev
     jump prev current (x :: xs) =
-      case compare current x of
-      GT => jump x current xs
-      _  => prev
+      case compare x current of
+        GT => jump x current xs
+        _  => prev
+
+  -- remove this
+  export
+  toS : JumpLabels n -> String
+  toS (Jumps back forward) = "Jumps (" ++ bstr ++ ") (" ++ rstr ++ ")" where
+    bstr = show . map (show . finToNat) $ back
+    rstr = show . map (show . finToNat) $ forward
 
 export
 data Tape : (left : Nat) -> (right : Nat) -> (size : Nat) -> Type where
@@ -187,10 +190,14 @@ inputChar c = record { cells->current = (ord c) }
 export
 jumpBack : VMState left right (S is) -> VMState left right (S is)
 jumpBack vm =
-  record { pc = JumpLabels.jumpBack (pc vm) (jumps vm) } vm
+  if record {cells->current } vm == 0
+  then vm
+  else record { pc = JumpLabels.jumpBack (pc vm) (jumps vm) } vm
 
 -- -- ]
 export
 jumpForward : VMState left right (S is) -> VMState left right (S is)
 jumpForward vm =
-  record { pc = JumpLabels.jumpForward (pc vm) (jumps vm) } vm
+  if record { cells->current } vm == 0
+  then record { pc = JumpLabels.jumpForward (pc vm) (jumps vm) } vm
+  else vm

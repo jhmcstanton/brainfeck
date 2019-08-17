@@ -23,6 +23,12 @@ CharIO IO where
   putChar  = lift . putChar
   error    = lift . putStrLn
 
+-- export
+-- CharIO JS_IO where
+--   getChar  = ?rhs
+--   putChar  = ?rhs
+--   error    = ?rhs
+
 export
 VMST : Nat -> Nat -> Nat -> Type
 VMST l r i = State (VMState l r i)
@@ -120,6 +126,9 @@ step {l} {r} {i} vmVar = do
 partial -- :(
 runLoop : CharIO io => {auto p : IsSucc (l + r) } -> (vm : Var) -> ST io () [ remove vm (VMST l r (S i)) ]
 runLoop vmVar = do
+  -- TODO: remove the next 2 lines
+  -- v <- read vmVar
+  -- error $ "PC: " ++ (show . finToNat . pc $ v) ++ " Ins: " ++ (toS $ instruction v) ++ " " ++ VM.JumpLabels.toS (jumps v)
   res <- step vmVar
   case res of
     (StepError _ _ _ (S k)) => error "Aborting" >>= \_ => delete vmVar
@@ -140,6 +149,8 @@ runLoop vmVar = do
 
 partial
 export
+-- TODO: Make this generic per backend
+-- IO -> IO' lang
 runProgram : String -> IO ()
 runProgram progText =
   case lex progText of
