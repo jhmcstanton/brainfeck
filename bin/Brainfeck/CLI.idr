@@ -31,6 +31,6 @@ export
 main : IO ()
 main = do
   programPath <- programFile
-  Left e  <- readFile programPath | (Right prog) => runProgram prog
+  Left e  <- readFile programPath | (Right prog) => runProgram False False prog
   putStrLn ("Error reading file: " ++ programPath)
   printLn e

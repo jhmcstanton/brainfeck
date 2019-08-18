@@ -140,17 +140,17 @@ export
 jumpBack : VMState left right (S is) -> VMState left right (S is)
 jumpBack vm =
   case instruction vm of
-    _            => vm
-    OJumpNZero l => if record {cells->current } vm == 0
+    OJumpNZero l => if record { cells->current } vm == 0
                     then vm
                     else record { pc = l } vm
+    _            => vm
 
 -- ]
 export
 jumpForward : VMState left right (S is) -> VMState left right (S is)
 jumpForward vm =
   case instruction vm of
-    _           => vm
     OJumpZero l => if record { cells->current } vm == 0
                    then record { pc = l } vm
                    else vm
+    _           => vm
