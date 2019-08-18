@@ -12,56 +12,6 @@ export
 Cell : Type
 Cell = Int
 
--- TODO: Encode these as sorted lists
--- note that back would need to be sorted from highest to lowest
-export
-record JumpLabels (instructionCount : Nat) where
-  constructor Jumps
-  back    : List (Label instructionCount)
-  forward : List (Label instructionCount)
-%name JumpLabels jumps
-
-namespace JumpLabels
-  collectJumps : Instructions (S n) -> JumpLabels (S n)
-  collectJumps {n} is = (collect 0 is) where
-    collect : Integer -> Instructions k -> JumpLabels (S n)
-    collect _ []        = Jumps [] []
-    collect idx (x :: xs) =
-      let jumps@(Jumps bs fs) = collect (idx + 1) xs in
-      case x of
-        TJumpForward => Jumps bs (restrict n idx :: fs)
-        TJumpBack    => Jumps (restrict n idx :: bs) fs
-        _            => jumps
-
-  -- Returns the most recent label ( [ ) to jump back to.
-  -- If no such label exists returns 0
-  jumpBack : Fin (S n) -> JumpLabels (S n) -> Fin (S n)
-  jumpBack pc js = jump FZ pc (forward js) where
-    jump : Fin (S n) -> Fin (S n) -> List (Fin (S n)) -> Fin (S n)
-    jump prev _      []         = prev
-    jump prev current (x :: xs) =
-      case compare x current of
-        LT => jump x current xs
-        _  => prev --jump current xs
-
-  -- Returns the next label ( ] ) to jump forward to.
-  -- If no such label exists returns (FS n) (effectively exits the program)
-  jumpForward : Fin (S n) -> JumpLabels (S n) -> Fin (S n)
-  jumpForward pc js = jump last pc (back js) where
-    jump : Fin (S n) -> Fin (S n) -> List (Fin (S n)) -> Fin (S n)
-    jump prev _        []       = prev
-    jump prev current (x :: xs) =
-      case compare x current of
-        GT => jump x current xs
-        _  => prev
-
-  -- remove this
-  export
-  toS : JumpLabels n -> String
-  toS (Jumps back forward) = "Jumps (" ++ bstr ++ ") (" ++ rstr ++ ")" where
-    bstr = show . map (show . finToNat) $ back
-    rstr = show . map (show . finToNat) $ forward
-
 export
 data Tape : (left : Nat) -> (right : Nat) -> (size : Nat) -> Type where
   MkTape : Vect left Cell
@@ -117,12 +67,11 @@ record VMState (tapeLeft : Nat) (tapeRight : Nat) (instructionCount : Nat) where
   constructor    VM
   pc           : Fin instructionCount
   instructions : Instructions instructionCount
-  jumps        : JumpLabels instructionCount
   cells        : Tape tapeLeft tapeRight (tapeLeft + tapeRight)
 %name VMState vm
 
 export
-instruction : VMState l r i -> Token
+instruction : VMState l r i -> Operation i
 instruction vm = index (pc vm) (instructions vm)
 
 public export
@@ -135,12 +84,12 @@ InitialVM instructionCount = VMState 0 InitialVMSize instructionCount
 
 export
 initVM : Instructions (S n) -> InitialVM (S n)
-initVM instructions = VM 0 instructions (collectJumps instructions) (initTape _)
+initVM instructions = VM 0 instructions (initTape _)
 
 export
 growVM : (vm : VMState left right is) -> VMState left (right + (left + right)) is
 growVM {left} {right} vm =
-  VM (pc vm) (instructions vm) (jumps vm) extendedCells
+  VM (pc vm) (instructions vm) extendedCells
   where
     extendedCells : Tape left (right + (left + right)) (left + (right + (left + right)))
     extendedCells = extend (cells vm) {k = left + right}
@@ -152,7 +101,7 @@ growVM {left} {right} vm =
 -- <
 export
 shiftLeft : VMState (S left) right is -> VMState left (S right) is
-shiftLeft {left} {right} vm = VM (pc vm) (instructions vm) (jumps vm) cells' where
+shiftLeft {left} {right} vm = VM (pc vm) (instructions vm) cells' where
   cells' = Tape.shiftLeft . cells $ vm
 
 -- >
@@ -160,7 +109,7 @@ shiftLeft {left} {right} vm = VM (pc vm) (instructions vm) (jumps vm) cells' whe
 -- that really complicates the type.
 export
 shiftRight : VMState left (S right) is -> VMState (S left) right is
-shiftRight {right} vm = VM (pc vm) (instructions vm) (jumps vm) cells' where
+shiftRight {right} vm = VM (pc vm) (instructions vm) cells' where
   cells' = Tape.shiftRight . cells $ vm
 
 updateCell : (Cell -> Cell) -> VMState left right is -> VMState left right is
@@ -190,14 +139,18 @@ inputChar c = record { cells->current = (ord c) }
 export
 jumpBack : VMState left right (S is) -> VMState left right (S is)
 jumpBack vm =
-  if record {cells->current } vm == 0
-  then vm
-  else record { pc = JumpLabels.jumpBack (pc vm) (jumps vm) } vm
+  case instruction vm of
+    _            => vm
+    OJumpNZero l => if record {cells->current } vm == 0
+                    then vm
+                    else record { pc = l } vm
 
--- -- ]
+-- ]
 export
 jumpForward : VMState left right (S is) -> VMState left right (S is)
 jumpForward vm =
-  if record { cells->current } vm == 0
-  then record { pc = JumpLabels.jumpForward (pc vm) (jumps vm) } vm
-  else vm
+  case instruction vm of
+    _           => vm
+    OJumpZero l => if record { cells->current } vm == 0
+                   then record { pc = l } vm
+                   else vm

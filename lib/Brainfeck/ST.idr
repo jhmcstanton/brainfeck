@@ -1,13 +1,11 @@
 module Brainfeck.ST
--- Local Variables:
--- idris-load-packages: ("contrib")
--- End:
 import Control.ST
 import Data.Fin
 import Data.Vect as V
 import System
 
 import Brainfeck.Lex
+import Brainfeck.Parse
 import Brainfeck.Type
 import Brainfeck.VM as VM
 
@@ -113,17 +111,17 @@ step : CharIO io => {auto p : IsSucc (l + r) }
 step {l} {r} {i} vmVar = do
   vm <- read vmVar
   case instruction vm of
-    TLeft        => do vm' <- shiftLeft vmVar
+    OLeft        => do vm' <- shiftLeft vmVar
                        case vm' of
                          (StepError e l  r  i) => pure $ StepError e l r i
                          (StepSuccess l' r' i) => pure $ StepSuccess l' r' i
-    TRight       => shiftRight vmVar >>= \(STrivial l' r') => pure (StepSuccess l' r' (S i))
-    TInc         => increment vmVar >>= \_ => pure stepSuccess
-    TDec         => decrement vmVar >>= \_ => pure stepSuccess
-    TOut         => outputChar vmVar >>= \_ => pure stepSuccess
-    TIn          => readChar vmVar >>= \_ => pure stepSuccess
-    TJumpForward => jumpForward vmVar >>= \_ => pure stepSuccess
-    TJumpBack    => jumpBack vmVar >>= \_ => pure stepSuccess
+    ORight       => shiftRight vmVar >>= \(STrivial l' r') => pure (StepSuccess l' r' (S i))
+    OInc         => increment vmVar >>= \_ => pure stepSuccess
+    ODec         => decrement vmVar >>= \_ => pure stepSuccess
+    OOut         => outputChar vmVar >>= \_ => pure stepSuccess
+    OIn          => readChar vmVar >>= \_ => pure stepSuccess
+    OJumpZero _  => jumpForward vmVar >>= \_ => pure stepSuccess
+    OJumpNZero _ => jumpBack vmVar >>= \_ => pure stepSuccess
 
 partial
 runLoop : CharIO io => {auto p : IsSucc (l + r) } -> (vm : Var) -> ST io () [ remove vm (VMST l r (S i)) ]
@@ -149,19 +147,44 @@ runLoop vmVar = do
                update vmVar (record { pc = r })
                runLoop vmVar
 
+printTokens : Bool -> Tokens n -> IO ()
+printTokens False _ = pure ()
+printTokens True xs = do
+  putStrLn "Lexed Tokens: "
+  let strs = V.intersperse ", " $ map (tokenToS . snd) xs
+  traverse putStr strs
+  putStrLn ""
+  pure ()
+
+printParse : Bool -> Instructions n -> IO ()
+printParse False _ = pure ()
+printParse True xs = do
+  putStrLn "Parsed Operations: "
+  let strs = V.intersperse ", " $ map operationToS xs
+  traverse putStr strs
+  putStrLn ""
+  pure ()
+
 partial
 export
 -- TODO: Make this generic per backend
 -- IO -> IO' lang
-runProgram : String -> IO ()
-runProgram progText =
+runProgram : (printLex : Bool) -> (printParse : Bool) -> String -> IO ()
+runProgram plex pparse progText =
   case lex progText of
     (Z ** _ ) => putStrLn "Nothing to do. Bye"
     (S n ** ts) => do
-      let vm = initVM ts
-      case isItSucc InitialVMSize of
-        (No _)    => putStrLn "This was compiled with an invalid InitialVMSize! See ya."
-        (Yes prf) => run (do
-                       v <- new vm
-                       runLoop {p = prf} {l = 0} {r = InitialVMSize} v)
+      printTokens plex ts
+      case parse ts of
+        Left (MkParseError loc s) =>
+          putStrLn $ "Error at " ++ locToS loc ++ " " ++ s
+        Right (Z ** _)     => putStrLn "Empty parse"
+        Right (S n ** ops) => do
+          printParse pparse ops
+          let vm = initVM ops
+          case isItSucc InitialVMSize of
+            (No _)    => putStrLn "This was compiled with an invalid InitialVMSize! See ya."
+            (Yes prf) => run (do
+                           v <- new vm
+                           runLoop {p = prf} {l = 0} {r = InitialVMSize} v)
 

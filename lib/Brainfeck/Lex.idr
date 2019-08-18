@@ -33,7 +33,7 @@ lexList [] = (0 ** [])
 lexList {line_no = S n} (cs :: lines) =
   case lexList lines of
     (_ ** otherTokens) => case lexLine (S n) 0 cs of
-                            (_ ** tokens) => (_ ** tokens ++ otherTokens)
+                            (_ ** tokens) => (_ ** (reverse tokens) ++ otherTokens)
 
 export
 lex : (program : String) -> (num_tokens ** Tokens num_tokens)

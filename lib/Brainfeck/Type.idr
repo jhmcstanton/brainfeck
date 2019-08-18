@@ -20,15 +20,15 @@ data Token     : Type  where
   TJumpBack    : Token -- ]
 
 public export
-data Operation : Type where
-  OLeft        : Operation -- <
-  ORight       : Operation -- >
-  OInc         : Operation -- +
-  ODec         : Operation -- -
-  OOut         : Operation -- .
-  OIn          : Operation -- ,
-  OJumpZero    : Label f -> Operation -- [
-  OJumpNZero   : Label b -> Operation -- ]
+data Operation : Nat -> Type where
+  OLeft        : Operation n -- <
+  ORight       : Operation n -- >
+  OInc         : Operation n -- +
+  ODec         : Operation n -- -
+  OOut         : Operation n -- .
+  OIn          : Operation n -- ,
+  OJumpZero    : Label f -> Operation f-- [
+  OJumpNZero   : Label b -> Operation b -- ]
 
 export
 tokenToS : Token -> String
@@ -41,7 +41,8 @@ tokenToS TIn = ","
 tokenToS TJumpForward = "["
 tokenToS TJumpBack = "]"
 
-operationToS : Operation -> String
+export
+operationToS : Operation f -> String
 operationToS OLeft          = "<"
 operationToS ORight         = ">"
 operationToS OInc           = "+"
@@ -70,5 +71,5 @@ Tokens n = Vect n (Location, Token)
 -- Probably wait until its actually an issue first though
 public export
 Instructions   : Nat -> Type
-Instructions n = Vect n Operation
+Instructions n = Vect n (Operation n)
 %name Instructions instructions

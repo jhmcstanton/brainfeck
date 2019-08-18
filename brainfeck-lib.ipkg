@@ -3,8 +3,10 @@ package brainfeck-lib
 sourcedir  = lib
 modules    = Brainfeck.Lex
            , Brainfeck.Parse
+           , Brainfeck.ST
            , Brainfeck.Type
            , Brainfeck.Util
+           , Brainfeck.VM
 
 pkgs       = contrib
 
