@@ -126,9 +126,6 @@ step {l} {r} {i} vmVar = do
 partial
 runLoop : CharIO io => {auto p : IsSucc (l + r) } -> (vm : Var) -> ST io () [ remove vm (VMST l r (S i)) ]
 runLoop vmVar = do
-  -- TODO: remove the next 2 lines
-  -- v <- read vmVar
-  -- error $ "PC: " ++ (show . finToNat . pc $ v) ++ " Ins: " ++ (toS $ instruction v) ++ " " ++ VM.JumpLabels.toS (jumps v)
   res <- step vmVar
   case res of
     (StepError _ _ _ (S k)) => error "Aborting" >>= \_ => delete vmVar

@@ -132,7 +132,7 @@ outputChar = chr . record { cells->current }
 
 -- ,
 export
-inputChar : Char -> VMState left right is -> VMState left right is -- Probably update this
+inputChar : Char -> VMState left right is -> VMState left right is
 inputChar c = record { cells->current = (ord c) }
 
 -- [
