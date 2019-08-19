@@ -28,7 +28,15 @@ This project is split into 3 sub projects:
 
 ## Usage
 
+### CLI 
+
 `brainfeck PATH/TO/BRAINFUCK/PROGRAM`
+
+### Web
+
+Or head over to [the gh-pages hosted brainfeck-web implementation](https://jhmcstanton.com/brainfeck).
+This version is using the js backend for idris. The compiled code can be found
+in [brainfeck.js](./brainfeck.js).
 
 ## TODO
 
