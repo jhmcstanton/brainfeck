@@ -1,8 +1,14 @@
 module Main
 
+import Control.ST
 import System
 
 import Brainfeck.ST
+
+CharIO IO where
+  getChar = lift getChar
+  putChar = lift . putChar
+  info    = lift . putStrLn
 
 FilePath : Type
 FilePath = String
@@ -31,6 +37,6 @@ export
 main : IO ()
 main = do
   programPath <- programFile
-  Left e  <- readFile programPath | (Right prog) => runProgram False False prog
+  Left e  <- readFile programPath | (Right prog) =>  run (runProgram False False prog)
   putStrLn ("Error reading file: " ++ programPath)
   printLn e

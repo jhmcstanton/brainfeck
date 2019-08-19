@@ -13,21 +13,9 @@ import Brainfeck.VM as VM
 
 export
 interface CharIO (m : Type -> Type) where
-  getChar  : STrans m Char res (const res)
-  putChar  : Char -> STrans m () res (const res)
-  error    : String -> STrans m () res (const res)
-
-export
-CharIO IO where
-  getChar  = lift getChar
-  putChar  = lift . putChar
-  error    = lift . putStrLn
-
--- export
--- CharIO JS_IO where
---   getChar  = ?rhs
---   putChar  = ?rhs
---   error    = ?rhs
+  getChar : STrans m Char res (const res)
+  putChar : Char -> STrans m () res (const res)
+  info    : String -> STrans m () res (const res)
 
 export
 VMST : Nat -> Nat -> Nat -> Type
@@ -61,7 +49,7 @@ jumpForward : (vm : Var) -> ST id () [vm ::: VMST l r (S i)]
 jumpForward = updateVM VM.jumpForward
 
 data StepResult : Type where
-  StepError   : String -> (l : Nat) -> (r : Nat) -> (i : Nat) -> StepResult
+  StepInfo   : String -> (l : Nat) -> (r : Nat) -> (i : Nat) -> StepResult
   StepSuccess : (l : Nat) -> (r : Nat) -> (i : Nat) -> StepResult
 
 ResultST : Type
@@ -77,12 +65,12 @@ shiftLeft : CharIO io
           => (vm : Var)
           -> ST io StepResult [vm ::: VMST l r i :->
                                  (\res => case res of
-                                            (StepError e l r i)   => VMST l r i
+                                            (StepInfo e l r i)   => VMST l r i
                                             (StepSuccess l' r' i) => VMST l' r' i)]
 shiftLeft {l = Z} {r} {i} _ = do
   let msg = "Cell index is 0. Unable to leftshift."
-  error msg
-  pure $ StepError msg Z r i
+  info msg
+  pure $ StepInfo msg Z r i
 shiftLeft {l = (S k)} {r} {i} vm = update vm (VM.shiftLeft) >>= \_ => pure (StepSuccess k (S r) i)
 
 shiftRight : {l : Nat} -> {r : Nat} -> {auto p : IsSucc (l + r)}
@@ -106,14 +94,14 @@ step : CharIO io => {auto p : IsSucc (l + r) }
      -> (vm : Var)
      -> ST io StepResult [ vm ::: VMST l r (S i) :->
                                 (\res => case res of
-                                           (StepError e l  r  i) => VMST l  r  i
+                                           (StepInfo e l  r  i) => VMST l  r  i
                                            (StepSuccess l' r' i) => VMST l' r' i) ]
 step {l} {r} {i} vmVar = do
   vm <- read vmVar
   case instruction vm of
     OLeft        => do vm' <- shiftLeft vmVar
                        case vm' of
-                         (StepError e l  r  i) => pure $ StepError e l r i
+                         (StepInfo e l  r  i) => pure $ StepInfo e l r i
                          (StepSuccess l' r' i) => pure $ StepSuccess l' r' i
     ORight       => shiftRight vmVar >>= \(STrivial l' r') => pure (StepSuccess l' r' (S i))
     OInc         => increment vmVar >>= \_ => pure stepSuccess
@@ -128,13 +116,13 @@ runLoop : CharIO io => {auto p : IsSucc (l + r) } -> (vm : Var) -> ST io () [ re
 runLoop vmVar = do
   res <- step vmVar
   case res of
-    (StepError _ _ _ (S k)) => error "Aborting" >>= \_ => delete vmVar
-    (StepError _ _ _  Z   ) => error "Ended up in an undefined state (missing all instructions)" >>= \_ => delete vmVar
-    (StepSuccess _ _  Z   ) => do error "Ended up in an undefined state (missing all instructions) after successful step"
+    (StepInfo _ _ _ (S k)) => info "Aborting" >>= \_ => delete vmVar
+    (StepInfo _ _ _  Z   ) => info "Ended up in an undefined state (missing all instructions)" >>= \_ => delete vmVar
+    (StepSuccess _ _  Z   ) => do info "Ended up in an undefined state (missing all instructions) after successful step"
                                   delete vmVar
     (StepSuccess tapeL tapeR (S k)) => do
       case isItSucc (tapeL + tapeR) of
-         No _    => error "Somehow the tape was deleted. Aborting." >>= \_ => delete vmVar
+         No _    => info "Somehow the tape was deleted. Aborting." >>= \_ => delete vmVar
          Yes prf => do
            vm <- read vmVar
            let pc' = FS (pc vm)
@@ -144,44 +132,42 @@ runLoop vmVar = do
                update vmVar (record { pc = r })
                runLoop vmVar
 
-printTokens : Bool -> Tokens n -> IO ()
+printTokens : CharIO io => Bool -> Tokens n -> ST io () []
 printTokens False _ = pure ()
 printTokens True xs = do
-  putStrLn "Lexed Tokens: "
-  let strs = V.intersperse ", " $ map (tokenToS . snd) xs
-  traverse putStr strs
-  putStrLn ""
+  info "Lexed Tokens: "
+  let strs = foldr (++) "" . V.intersperse ", " $ map (tokenToS . snd) xs
+  info strs
+  info ""
   pure ()
 
-printParse : Bool -> Instructions n -> IO ()
+printParse : CharIO io => Bool -> Instructions n -> ST io () []
 printParse False _ = pure ()
 printParse True xs = do
-  putStrLn "Parsed Operations: "
-  let strs = V.intersperse ", " $ map operationToS xs
-  traverse putStr strs
-  putStrLn ""
+  info "Parsed Operations: "
+  let strs = foldr (++) "" . V.intersperse ", " $ map operationToS xs
+  info strs
+  info ""
   pure ()
 
 partial
 export
--- TODO: Make this generic per backend
--- IO -> IO' lang
-runProgram : (printLex : Bool) -> (printParse : Bool) -> String -> IO ()
+runProgram : CharIO io => (printLex : Bool) -> (printParse : Bool)
+          -> (progText : String) -> ST io () []
 runProgram plex pparse progText =
   case lex progText of
-    (Z ** _ ) => putStrLn "Nothing to do. Bye"
+    (Z ** _ ) => info "Nothing to do. Bye"
     (S n ** ts) => do
       printTokens plex ts
       case parse ts of
         Left (MkParseError loc s) =>
-          putStrLn $ "Error at " ++ locToS loc ++ " " ++ s
-        Right (Z ** _)     => putStrLn "Empty parse"
+          info $ "Info at " ++ locToS loc ++ " " ++ s
+        Right (Z ** _)     => info "Empty parse"
         Right (S n ** ops) => do
           printParse pparse ops
           let vm = initVM ops
           case isItSucc InitialVMSize of
-            (No _)    => putStrLn "This was compiled with an invalid InitialVMSize! See ya."
-            (Yes prf) => run (do
-                           v <- new vm
-                           runLoop {p = prf} {l = 0} {r = InitialVMSize} v)
+            (No _)    => info "This was compiled with an invalid InitialVMSize! See ya."
+            (Yes prf) => do v <- new vm
+                            runLoop {p = prf} {l = 0} {r = InitialVMSize} v
 

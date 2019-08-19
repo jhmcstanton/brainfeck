@@ -6,6 +6,7 @@ main       = Brainfeck.CLI
 executable = brainfeck
 
 pkgs       = brainfeck-lib
+           , contrib
 
 author     = Jim McStanton
 maintainer = Jim McStanton

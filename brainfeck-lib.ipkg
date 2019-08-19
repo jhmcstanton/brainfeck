@@ -9,6 +9,7 @@ modules    = Brainfeck.Lex
            , Brainfeck.VM
 
 pkgs       = contrib
+opts       = "--codegen Javascript"
 
 author     = Jim McStanton
 maintainer = Jim McStanton

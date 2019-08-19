@@ -25,4 +25,6 @@ This project is split into 2 sub projects:
 
 `brainfeck PATH/TO/BRAINFUCK/PROGRAM`
 
+## TODO:
 
+- IO_JS wrapper for lib
