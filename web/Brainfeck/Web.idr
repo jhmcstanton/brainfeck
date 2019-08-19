@@ -21,6 +21,12 @@ runButtonId = "run-button"
 clearButtonId : String
 clearButtonId = "clear"
 
+programsListId : String
+programsListId = "programs-list"
+
+loadProgramButtonId : String
+loadProgramButtonId = "load-program"
+
 getLastChar : JS_IO Char
 getLastChar = do
   text <- foreign FFI_JS "prompt(%0)"
@@ -59,6 +65,23 @@ clear _ = do
          (String -> JS_IO ())
          consoleId
 
+rawGithubUrl : String -> String
+rawGithubUrl s =
+  "https://raw.githubusercontent.com/jhmcstanton/brainfeck/master/examples/"
+    ++ s
+
+load : () -> JS_IO ()
+load _ = do
+  index <- jscall "document.getElementById(%0).selectedIndex"
+           (String -> JS_IO Int) programsListId
+  programName <- jscall "document.getElementById(%0).options[%1].value"
+                 (String -> Int -> JS_IO String)
+           programsListId index
+  jscall """
+     fetch(%0).then(resp => resp.text().then(
+         t => document.getElementById(%1).value = t))"""
+         (String -> String -> JS_IO ()) (rawGithubUrl programName) programId
+
 addButtonListener : (id : String) -> (() -> JS_IO ()) -> JS_IO ()
 addButtonListener id f = do
   jscall "document.getElementById(%0).addEventListener('click', %1, false)"
@@ -69,3 +92,4 @@ main : JS_IO ()
 main = do
   addButtonListener clearButtonId clear
   addButtonListener runButtonId runProgram
+  addButtonListener loadProgramButtonId load

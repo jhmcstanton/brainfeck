@@ -3,9 +3,25 @@ body {
     padding-top: 2%;
 }
 
+div {
+    float: left;
+    margin-top: 1%; margin-bottom: 1%;
+}
+
+#predefined-programs {
+    width: 20%;
+}
+
+#predefined-programs select {
+    width: 100%
+}
+
+#editor {
+    width: 80%;
+}
+
 textarea {
     width: 100%;
-    margin-top: 1%; margin-bottom: 1%;
 }
 
 #program-text {

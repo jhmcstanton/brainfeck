@@ -1455,6 +1455,14 @@ function $partial_1_2$Brainfeck__Util__listToVect(x1){
     });
 }
 
+function $partial_0_2$Main__load(){
+    return (function(x1){
+        return (function(x2){
+            return Main__load(x1, x2);
+        });
+    });
+}
+
 function $partial_1_2$Brainfeck__Parse__matchForwardJump(x1){
     return (function(x2){
         return Brainfeck__Parse__matchForwardJump(x1, x2);
@@ -2650,6 +2658,16 @@ function Brainfeck__Util__listToVect($_0_arg, $_1_arg){
     }
 }
 
+// Main.load
+
+function Main__load($_0_arg, $_1_in){
+    const $_2_in = (document.getElementById(("programs-list")).selectedIndex);
+    const $_3_in = (document.getElementById(("programs-list")).options[($_2_in)].value);
+    return (
+         fetch((("https://raw.githubusercontent.com/jhmcstanton/brainfeck/master/examples/" + $_3_in))).then(resp => resp.text().then(
+             t => document.getElementById(("program-text")).value = t)));
+}
+
 // Control.ST.lookupEnv
 
 function Control__ST__lookupEnv($_0_arg, $_1_arg, $_2_arg, $_3_arg, $_4_arg){
@@ -2667,6 +2685,14 @@ function Control__ST__lookupEnv($_0_arg, $_1_arg, $_2_arg, $_3_arg, $_4_arg){
             $_4_arg = $_4_arg.$2;
         }
     }
+}
+
+// Main.main
+
+function Main__main($_0_in){
+    const $_1_in = Main__addButtonListener("clear", $partial_0_2$Main__clear(), $_0_in);
+    const $_2_in = Main__addButtonListener("run-button", $partial_0_2$Main__runProgram(), $_0_in);
+    return Main__addButtonListener("load-program", $partial_0_2$Main__load(), $_0_in);
 }
 
 // Data.Vect.mapMaybe
@@ -3990,8 +4016,7 @@ function Prelude__Interfaces__Prelude__Interfaces___64_Prelude__Interfaces__Ord_
 // {runMain_0}
 
 function $_0_runMain(){
-    const $_4_in = Main__addButtonListener("clear", $partial_0_2$Main__clear(), $HC_0_0$TheWorld);
-    return $JSRTS.force(Main__addButtonListener("run-button", $partial_0_2$Main__runProgram(), $HC_0_0$TheWorld));
+    return $JSRTS.force(Main__main($HC_0_0$TheWorld));
 }
 
 // Brainfeck.VM.Tape.extend, extendVect

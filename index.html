@@ -12,12 +12,22 @@
             This time in Idris!
             <a href="https://www.github.com/jhmcstanton/brainfeck">Check out the source!</a>
         </header>
-        <textarea id="program-text" name="program text">
+        <div id="predefined-programs">
+            <select id="programs-list" name="programs" size="10">
+                <option value="hello_world.bf">Simple Hello World</option>
+                <option value="iterative_hello.bf">Iterative Hello World</option>
+                <option value="input.bf">User Input</option>
+            </select>
+            <button id="load-program" type="button">Load Program</button>
+        </div>
+        <div id="editor">
+            <textarea id="program-text" name="program text">
 Enter your program here!</textarea>
-        <b>Console:</b>
-        <textarea id="console" name="console"></textarea>
-        <button id="run-button" type="button">Run</button>
-        <button id="clear" type="button">Clear Console</button>
+            <b>Console:</b>
+            <textarea id="console" name="console"></textarea>
+            <button id="run-button" type="button">Run</button>
+            <button id="clear" type="button">Clear Console</button>
+        </div>
     </body>
     <script src="brainfeck.js"></script>
 </html>
