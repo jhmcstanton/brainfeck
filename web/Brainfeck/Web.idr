@@ -67,8 +67,5 @@ addButtonListener id f = do
 
 main : JS_IO ()
 main = do
-  jscall "alert(%0)"
-    (String -> JS_IO ())
-    "Hello World!"
   addButtonListener clearButtonId clear
   addButtonListener runButtonId runProgram
