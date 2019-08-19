@@ -1,0 +1,14 @@
+package brainfeck-web
+
+sourcedir  = web
+modules    = Brainfeck.Web
+main       = Brainfeck.Web
+executable = brainfeck.js
+
+pkgs       = brainfeck-lib
+           , contrib
+opts       = "--codegen javascript"
+
+author     = Jim McStanton
+maintainer = Jim McStanton
+license    = MIT

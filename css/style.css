@@ -1,0 +1,17 @@
+body {
+    padding-left: 5%; padding-right: 5%;
+    padding-top: 2%;
+}
+
+textarea {
+    width: 100%;
+    margin-top: 1%; margin-bottom: 1%;
+}
+
+#program-text {
+    height: 40%;
+}
+
+button {
+    float: right;
+}

@@ -8,23 +8,24 @@ brainfuck interpreter written in [Idris](https://www.idris-lang.org).
 brainfeck is built using idris 1.3.2. Installation instructions
 can be found [here](https://www.idris-lang.org/download/).
 
-This project is split into 2 sub projects:
+This project is split into 3 sub projects:
 
 - `brainfeck-lib`
   which houses the brainfeck lexer, parser, and interpreter
 - `brainfeck-cli`
-  which just wraps the lib up and handles reading the provided file
+  which just wraps the lib up and handles reading a provided file
+  using the C backend
+- `brainfeck-web`
+  which calls the library from JS using the javascript backend. This
+  is reliant on the [index.html](./index.html) found in this repo.
   
 ### Steps to build:
 
 - Install `brainfeck-lib` : `idris --install brainfeck-lib.ipkg`
   Note that this installs the package globally.
 - Build `brainfeck-cli` : `idris --build brainfeck-cli.ipkg`
+- Build `brainfeck-web` : `idris --build brainfeck-web.ipkg`
 
 ## Usage
 
 `brainfeck PATH/TO/BRAINFUCK/PROGRAM`
-
-## TODO:
-
-- IO_JS wrapper for lib
