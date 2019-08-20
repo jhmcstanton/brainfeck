@@ -3,3 +3,5 @@
 *.ibc
 brainfeck
 lib/Brainfeck/Test.idr
+brainfeck.js
+
