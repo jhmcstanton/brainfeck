@@ -161,7 +161,7 @@ runProgram plex pparse progText =
       printTokens plex ts
       case parse ts of
         Left (MkParseError loc s) =>
-          info $ "Info at " ++ locToS loc ++ " " ++ s
+          info $ "Error at " ++ locToS loc ++ " " ++ s
         Right (Z ** _)     => info "Empty parse"
         Right (S n ** ops) => do
           printParse pparse ops
