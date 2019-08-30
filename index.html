@@ -30,7 +30,7 @@ Enter your program here!</textarea>
             <button id="run-button" type="button">Run</button>
             <button id="clear" type="button">Clear Console</button>
         </div>
-        <p><i>Couple of gotchas:</i></p>
+        <p><i>A few gotchas:</i></p>
         <p>Sometimes user input does not like to
             work on the first try in Chrome. A few attempts at running
             the program usually solves that problem, or try this
@@ -42,6 +42,11 @@ Enter your program here!</textarea>
             when running a program with much iteration. These programs should
             work as expected when using the CLI implementation.
         </p>
+
+        <p>Lastly, user input does not support the line feed character ("\n"),
+            which is a common sentinel value to indicate end-of-input in
+            brainfuck programs. You'll just need to pick some other character.
+        </p>
     </body>
-    <script src="https://github.com/jhmcstanton/brainfeck/releases/download/0.1.1/brainfeck.js"></script>
+    <script src="https://github.com/jhmcstanton/brainfeck/releases/download/0.2.0/brainfeck.js"></script>
 </html>
