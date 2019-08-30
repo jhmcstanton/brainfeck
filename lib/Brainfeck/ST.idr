@@ -1,6 +1,7 @@
 module Brainfeck.ST
 import Control.ST
 import Data.Fin
+import Data.Fuel
 import Data.Vect as V
 import System
 
@@ -111,9 +112,11 @@ step {l} {r} {i} vmVar = do
     OJumpZero _  => jumpForward vmVar >>= \_ => pure stepSuccess
     OJumpNZero _ => jumpBack vmVar >>= \_ => pure stepSuccess
 
-partial
-runLoop : CharIO io => {auto p : IsSucc (l + r) } -> (vm : Var) -> ST io () [ remove vm (VMST l r (S i)) ]
-runLoop vmVar = do
+runLoop : CharIO io => {auto p : IsSucc (l + r) }
+                    -> Fuel -> (vm : Var)
+                    -> ST io () [ remove vm (VMST l r (S i)) ]
+runLoop Dry vmVar      = delete vmVar
+runLoop (More f) vmVar = do
   res <- step vmVar
   case res of
     (StepInfo _ _ _ (S k)) => info "Aborting" >>= \_ => delete vmVar
@@ -130,7 +133,7 @@ runLoop vmVar = do
              (Left l) => delete vmVar -- end of program
              (Right r) => do
                update vmVar (record { pc = r })
-               runLoop vmVar
+               runLoop f vmVar
 
 printTokens : CharIO io => Bool -> Tokens n -> ST io () []
 printTokens False _ = pure ()
@@ -150,11 +153,10 @@ printParse True xs = do
   info ""
   pure ()
 
-partial
 export
 runProgram : CharIO io => (printLex : Bool) -> (printParse : Bool)
-          -> (progText : String) -> ST io () []
-runProgram plex pparse progText =
+          -> Fuel -> (progText : String) -> ST io () []
+runProgram plex pparse fuel progText =
   case lex progText of
     (Z ** _ ) => info "Nothing to do. Bye"
     (S n ** ts) => do
@@ -169,5 +171,5 @@ runProgram plex pparse progText =
           case isItSucc InitialVMSize of
             (No _)    => info "This was compiled with an invalid InitialVMSize! See ya."
             (Yes prf) => do v <- new vm
-                            runLoop {p = prf} {l = 0} {r = InitialVMSize} v
+                            runLoop {p = prf} {l = 0} {r = InitialVMSize} fuel v
 

@@ -1,6 +1,7 @@
 module Main
 
 import Control.ST
+import Data.Fuel
 import System
 
 import Brainfeck.ST
@@ -37,6 +38,7 @@ export
 main : IO ()
 main = do
   programPath <- programFile
-  Left e  <- readFile programPath | (Right prog) =>  run (runProgram False False prog)
+  Left e  <- readFile programPath | (Right prog) =>
+                                      run (runProgram False False forever prog)
   putStrLn ("Error reading file: " ++ programPath)
   printLn e

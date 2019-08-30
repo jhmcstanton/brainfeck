@@ -1,6 +1,7 @@
 module Main
 
 import Control.ST
+import Data.Fuel
 import Data.String.Extra
 
 import Brainfeck.ST
@@ -57,7 +58,7 @@ runProgram _ = do
   program <- jscall "document.getElementById(%0).value"
                     (String -> JS_IO String)
                     programId
-  run (runProgram False False program)
+  run (runProgram False False forever program)
 
 clear : () -> JS_IO ()
 clear _ = do
